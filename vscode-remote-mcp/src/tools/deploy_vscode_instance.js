@@ -364,6 +364,11 @@ function buildContainerCommand(runtime, instanceName, workspacePath, port, passw
     ? '' // Passwordless: no PASSWORD env variable
     : `-e PASSWORD=${password}`;
   
+  // Auth flag: disable authentication for passwordless mode
+  const authFlag = (password === '' || password === undefined || password === null)
+    ? '--auth none' // Passwordless: disable code-server authentication
+    : '';
+  
   // Build container command (compatible with both Docker and Podman)
   return `${runtime} run -d \
     --name ${instanceName} \
@@ -377,7 +382,7 @@ function buildContainerCommand(runtime, instanceName, workspacePath, port, passw
     ${envVars} \
     ${passwordEnv} \
     -e EXTENSIONS=${extensionsList} \
-    codercom/code-server:latest`;
+    codercom/code-server:latest ${authFlag}`;
 }
 
 /**
