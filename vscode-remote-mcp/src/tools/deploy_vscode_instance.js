@@ -190,8 +190,8 @@ async function deployVSCodeInstance(params) {
       port = await getRandomPort();
     }
     
-    // Get password
-    const password = params.password || DEFAULT_PASSWORD;
+    // Get password - allow empty string for passwordless, use default only if undefined
+    const password = params.password !== undefined ? params.password : DEFAULT_PASSWORD;
     
     // Get extensions
     const extensions = params.extensions || DEFAULT_EXTENSIONS.split(',');
@@ -299,11 +299,12 @@ async function deployVSCodeInstance(params) {
     }
     
     // Success response with content array
+    const authInfo = password ? `Password: ${password}` : 'Authentication: Passwordless';
     return {
       content: [
         {
           type: 'text',
-          text: `VSCode instance deployed successfully!\n\nRuntime: ${runtime}\nName: ${params.name}\nInstance ID: ${instanceId}\nURL: http://localhost:${port}\nStatus: running\nWorkspace: ${workspacePath}`
+          text: `VSCode instance deployed successfully!\n\nRuntime: ${runtime}\nName: ${params.name}\nInstance ID: ${instanceId}\nURL: http://localhost:${port}\n${authInfo}\nStatus: running\nWorkspace: ${workspacePath}`
         }
       ],
       id: instanceId,
@@ -313,7 +314,8 @@ async function deployVSCodeInstance(params) {
       port,
       url: `http://localhost:${port}`,
       status: 'running',
-      workspace_path: workspacePath
+      workspace_path: workspacePath,
+      passwordless: !password
     };
   } catch (error) {
     console.error(`Error in deployVSCodeInstance: ${error.message}`);
@@ -357,6 +359,11 @@ function buildContainerCommand(runtime, instanceName, workspacePath, port, passw
   // Podman-specific adjustments
   const restartFlag = runtime === 'podman' ? '--restart=unless-stopped' : '--restart unless-stopped';
   
+  // Password handling: empty string or undefined means passwordless
+  const passwordEnv = (password === '' || password === undefined || password === null) 
+    ? '' // Passwordless: no PASSWORD env variable
+    : `-e PASSWORD=${password}`;
+  
   // Build container command (compatible with both Docker and Podman)
   return `${runtime} run -d \
     --name ${instanceName} \
@@ -368,7 +375,7 @@ function buildContainerCommand(runtime, instanceName, workspacePath, port, passw
     --cpus=${cpuLimit} \
     --memory=${memoryLimit} \
     ${envVars} \
-    -e PASSWORD=${password} \
+    ${passwordEnv} \
     -e EXTENSIONS=${extensionsList} \
     codercom/code-server:latest`;
 }
