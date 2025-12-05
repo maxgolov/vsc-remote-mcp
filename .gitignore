@@ -136,3 +136,9 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# VSCode instance configurations (generated at runtime)
+vscode-remote-mcp/vscode-instances/*.json
+
+# Temporary package-lock files in root
+package-lock.json
